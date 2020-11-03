@@ -12,7 +12,6 @@ import numpy as np
 import json 
 import cv2 
 import os
-
 from skimage import io
 
 app = Flask(__name__)
