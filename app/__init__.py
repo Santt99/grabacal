@@ -12,6 +12,9 @@ import numpy as np
 import json 
 import cv2 
 import os
+
+from skimage import io
+
 app = Flask(__name__)
 
 CORS(app)
@@ -44,9 +47,6 @@ tf.keras.layers.Dense(1,activation='sigmoid')
 model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
 model_fit = model.fit(train_dataset,steps_per_epoch = 3,epochs = 10,validation_data = train_dataset)
 
-
-
-
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -78,7 +78,6 @@ def upload_file():
             return response, 400
 
 def start_processing():
-    print("sirve")
     for i in os.listdir('test'):
         img = image.load_img('test/'+i,target_size=(500,500))
         #plt.imshow(img)
@@ -89,17 +88,38 @@ def start_processing():
         images = np.vstack([X]) 
         val = model.predict(images)
         js= model.evaluate(images)
-        print(js)
-        if(val == 0):
-            foodd = 'pizza'
-            cal = 1000
-        else:
-            foodd = 'pie'
-            cal = 900
+
+        APPLE_PIE = 0
+        FILET_MIGNON = 1
+        FRENCH_FRIES = 2
+        HAMBURGER = 3
+        HOT_DOG = 4
+
+        foodType = ''
+        foodCalories = 0
+
+        if(val == APPLE_PIE):
+            foodType = 'APPLE_PIE'
+            foodCalories = 437
+        elif(val == FILET_MIGNON):
+            foodType = 'FILET_MIGNON'
+            foodCalories = 467
+        elif(val == FRENCH_FRIES):
+            foodType = 'FRENCH_FRIES'
+            foodCalories = 660
+        elif(val == HAMBURGER):
+            foodType = 'HAMBURGER'
+            foodCalories = 505
+        elif(val == HOT_DOG):
+            foodType = 'HOT_DOG'
+            foodCalories = 564
+
+        foodCalories = getActualCalories('test/'+i, foodCalories)
+
         res[i] = {
-        "food": foodd,
-        "accuracy": .80,
-        "calories": cal,
+            "food_type": foodType,
+            "model_accuracy": 0.80,
+            "food_calories_aprox": foodCalories
         }
 
     with open('res.json', 'w') as json_file:
@@ -123,3 +143,26 @@ def process():
         start_processing()
         response = jsonify({"message": "Started processing images!"})
         return response, 200
+
+def getActualCalories(image, calories):
+    img = io.imread(image)[:, :, :-1]
+    pixels = np.float32(img.reshape(-1, 3))
+
+    n_colors = 5
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
+    flags = cv2.KMEANS_RANDOM_CENTERS
+
+    _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+    _, counts = np.unique(labels, return_counts=True)
+    dominant = palette[np.argmax(counts)]
+
+    redValue = dominant[0]
+    greenValue = dominant[1]
+    blueValue = dominant[2]
+
+    if redValue > greenValue:
+        return calories + 200
+    elif greenValue > redValue:
+        return calories - 200
+    else:
+        return calories + 100
