@@ -20,6 +20,9 @@ CORS(app)
 
 
 UPLOAD_FOLDER = './test'
+MODEL_CHECKPOIN_PATH = 'checkpoints'
+if not os.path.exists(MODEL_CHECKPOIN_PATH):
+    os.makedirs(MODEL_CHECKPOIN_PATH)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg','JPG','PNG'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -43,8 +46,10 @@ tf.keras.layers.Dense(512,activation='relu'),
 tf.keras.layers.Dense(1,activation='sigmoid')
 ])
 
+cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1)
+
 model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
-model_fit = model.fit(train_dataset,steps_per_epoch = 3,epochs = 10,validation_data = train_dataset)
+model_fit = model.fit(train_dataset, steps_per_epoch = 10, epochs = 30, validation_data = train_dataset, callbacks = [cp_callback])
 
 def allowed_file(filename):
     return '.' in filename and \
