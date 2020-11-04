@@ -20,9 +20,10 @@ CORS(app)
 
 
 UPLOAD_FOLDER = './test'
-MODEL_CHECKPOIN_PATH = 'checkpoints'
-if not os.path.exists(MODEL_CHECKPOIN_PATH):
-    os.makedirs(MODEL_CHECKPOIN_PATH)
+if not os.path.exists("checkpoints"):
+    os.makedirs("checkpoints")
+MODEL_CHECKPOIN_PATH = 'checkpoints/cp-{epoch:04d}.ckpt'
+MODEL_CHECKPOINT_DIR = os.path.dirname(MODEL_CHECKPOIN_PATH)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg','JPG','PNG'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -46,7 +47,7 @@ tf.keras.layers.Dense(512,activation='relu'),
 tf.keras.layers.Dense(1,activation='sigmoid')
 ])
 
-cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1)
+cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
 model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
 model_fit = model.fit(train_dataset, steps_per_epoch = 10, epochs = 30, validation_data = train_dataset, callbacks = [cp_callback])
@@ -91,7 +92,7 @@ def start_processing():
         X = np.expand_dims(X,axis = 0)
         images = np.vstack([X]) 
         val = model.predict(images)
-        js= model.evaluate(images)
+        loss, acc= model.evaluate(images)
 
         APPLE_PIE = 0
         FILET_MIGNON = 1
@@ -122,7 +123,7 @@ def start_processing():
 
         res[i] = {
             "food_type": foodType,
-            "model_accuracy": 0.80,
+            "model_accuracy": 100*acc,
             "food_calories_aprox": foodCalories
         }
 
