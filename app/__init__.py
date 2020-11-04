@@ -15,14 +15,15 @@ import os
 from skimage import io
 
 app = Flask(__name__)
-
 CORS(app)
 
-
 UPLOAD_FOLDER = './test'
+MODEL_CHECKPOIN_PATH = 'checkpoints/cp-{epoch:04d}.ckpt'
+MODEL_SAVEFILE_NAME = "trained_model.h5"
+
 if not os.path.exists("checkpoints"):
     os.makedirs("checkpoints")
-MODEL_CHECKPOIN_PATH = 'checkpoints/cp-{epoch:04d}.ckpt'
+
 MODEL_CHECKPOINT_DIR = os.path.dirname(MODEL_CHECKPOIN_PATH)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg','JPG','PNG'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -35,27 +36,57 @@ validation = ImageDataGenerator(rescale = 1/255)
 
 train_dataset=train.flow_from_directory("training", target_size = (500,500),batch_size = 10,class_mode = 'binary')  
 validation_dataset=validation.flow_from_directory("validation", target_size = (500,500),batch_size = 10,class_mode = "binary")  
-print(validation_dataset.class_indices)
-model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (500,500,3)), 
-tf.keras.layers.MaxPool2D(2,2),
-tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
-tf.keras.layers.MaxPool2D(2,2),
-tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
-tf.keras.layers.MaxPool2D(2,2),
-tf.keras.layers.Flatten(),
-tf.keras.layers.Dense(512,activation='relu'),
-tf.keras.layers.Dense(1,activation='sigmoid')
-])
+# print(validation_dataset.class_indices)
 
-cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
+def create_model_from_zero():
+    model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (500,500,3)), 
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(512,activation='relu'),
+    tf.keras.layers.Dense(1,activation='sigmoid')
+    ])
 
-model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
-model_fit = model.fit(train_dataset, steps_per_epoch = 10, epochs = 30, validation_data = train_dataset, callbacks = [cp_callback])
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
+
+    model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
+    model_fit = model.fit(train_dataset, steps_per_epoch = 10, epochs = 30, validation_data = train_dataset, callbacks = [cp_callback])
+    model.save(MODEL_SAVEFILE_NAME)
+
+    return model
+
+def create_model_from_checkpoint():
+    latest = tf.train.latest_checkpoint(MODEL_CHECKPOINT_DIR)
+
+    model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (500,500,3)), 
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(512,activation='relu'),
+    tf.keras.layers.Dense(1,activation='sigmoid')
+    ])
+
+    model.load_weights(latest)
+    return model
+
+def create_model_from_save():
+    model = keras.models.load_model(MODEL_SAVEFILE_NAME)
+    return model
+
+model = create_model_from_zero()
+#model = create_model_from_checkpoint()
+#model = create_model_from_save()
+
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -85,8 +116,6 @@ def upload_file():
 def start_processing():
     for i in os.listdir('test'):
         img = image.load_img('test/'+i,target_size=(500,500))
-        #plt.imshow(img)
-        #plt.show()
 
         X = image.img_to_array(img)
         X = np.expand_dims(X,axis = 0)
@@ -163,7 +192,6 @@ def getActualCalories(image, calories):
 
     redValue = dominant[0]
     greenValue = dominant[1]
-    blueValue = dominant[2]
 
     if redValue > greenValue:
         return calories + 200
