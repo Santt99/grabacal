@@ -9,8 +9,8 @@ from keras.preprocessing import image
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-import json 
-import cv2 
+import json
+import cv2
 import os
 from skimage import io
 
@@ -24,62 +24,100 @@ MODEL_SAVEFILE_NAME = "trained_model.h5"
 if not os.path.exists("checkpoints"):
     os.makedirs("checkpoints")
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
+
 MODEL_CHECKPOINT_DIR = os.path.dirname(MODEL_CHECKPOIN_PATH)
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg','JPG','PNG'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'JPG', 'PNG'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 res = {}
 cal = 0
 
-train = ImageDataGenerator(rescale= 1/255)
-validation = ImageDataGenerator(rescale = 1/255)
+train = ImageDataGenerator(rescale=1/255)
+validation = ImageDataGenerator(rescale=1/255)
 
-train_dataset=train.flow_from_directory("training", target_size = (500,500),batch_size = 10,class_mode = 'binary')  
-validation_dataset=validation.flow_from_directory("validation", target_size = (500,500),batch_size = 10,class_mode = "binary")  
+train_dataset = train.flow_from_directory(
+    "training", target_size=(500, 500), batch_size=10, class_mode='binary')
+validation_dataset = validation.flow_from_directory(
+    "validation", target_size=(500, 500), batch_size=10, class_mode="binary")
 # print(validation_dataset.class_indices)
 
+
 def create_model_from_zero():
-    model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (500,500,3)), 
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(512,activation='relu'),
-    tf.keras.layers.Dense(1,activation='sigmoid')
-    ])
+    print("[MODEL] Create Model from Zero -> Start")
+    model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Conv2D(
+                                            32, (3, 3), activation='relu'),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Conv2D(
+                                            64, (3, 3), activation='relu'),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Flatten(),
+                                        tf.keras.layers.Dense(
+                                            512, activation='relu'),
+                                        tf.keras.layers.Dense(
+                                            1, activation='sigmoid')
+                                        ])
 
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
-    model.compile(loss = 'binary_crossentropy',optimizer= RMSprop(lr=0.001),metrics=['accuracy'])
-    model_fit = model.fit(train_dataset, steps_per_epoch = 10, epochs = 30, validation_data = train_dataset, callbacks = [cp_callback])
+    print("\t- Started Compile Phase")
+    model.compile(loss='binary_crossentropy',
+                  optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
+    print("\t- Finished Compile Phase")
+    print("\t- Started Fit Phase")
+    model.fit(train_dataset, steps_per_epoch=10, epochs=30,
+              validation_data=train_dataset, callbacks=[cp_callback])
+    print("\t- Finished Fit Phase")
+    print("\t- Started Model Save Phase")
     model.save(MODEL_SAVEFILE_NAME)
+    print("\t- Finished Model Save Phase")
+    print("[MODEL] Create Model from Zero -> End")
 
     return model
+
 
 def create_model_from_checkpoint():
     latest = tf.train.latest_checkpoint(MODEL_CHECKPOINT_DIR)
 
-    model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (500,500,3)), 
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
-    tf.keras.layers.MaxPool2D(2,2),
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(512,activation='relu'),
-    tf.keras.layers.Dense(1,activation='sigmoid')
-    ])
+    model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Conv2D(
+                                            32, (3, 3), activation='relu'),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Conv2D(
+                                            64, (3, 3), activation='relu'),
+                                        tf.keras.layers.MaxPool2D(2, 2),
+                                        tf.keras.layers.Flatten(),
+                                        tf.keras.layers.Dense(
+                                            512, activation='relu'),
+                                        tf.keras.layers.Dense(
+                                            1, activation='sigmoid')
+                                        ])
 
     model.load_weights(latest)
     return model
+
 
 def create_model_from_save():
     model = keras.models.load_model(MODEL_SAVEFILE_NAME)
     return model
 
+
 model = create_model_from_zero()
+print("[SUCCESS] MODEL IS READY")
 #model = create_model_from_checkpoint()
 #model = create_model_from_save()
 
@@ -87,6 +125,7 @@ model = create_model_from_zero()
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
@@ -113,15 +152,16 @@ def upload_file():
             response = jsonify("That file format is not allowed")
             return response, 400
 
+
 def start_processing():
     for i in os.listdir('test'):
-        img = image.load_img('test/'+i,target_size=(500,500))
+        img = image.load_img('test/'+i, target_size=(500, 500))
 
         X = image.img_to_array(img)
-        X = np.expand_dims(X,axis = 0)
-        images = np.vstack([X]) 
+        X = np.expand_dims(X, axis=0)
+        images = np.vstack([X])
         val = model.predict(images)
-        loss, acc= model.evaluate(images)
+        loss, acc = model.evaluate(images)
 
         APPLE_PIE = 0
         FILET_MIGNON = 1
@@ -159,6 +199,7 @@ def start_processing():
     with open('res.json', 'w') as json_file:
         json.dump(res, json_file)
 
+
 @app.route('/results', methods=['GET'])
 def get_results():
     if request.method == 'GET':
@@ -171,12 +212,14 @@ def get_results():
                 response = jsonify({"message": "Done!", "data": data})
                 return response, 200
 
+
 @app.route('/process', methods=['GET'])
 def process():
     if request.method == 'GET':
         start_processing()
         response = jsonify({"message": "Started processing images!"})
         return response, 200
+
 
 def getActualCalories(image, calories):
     img = io.imread(image)[:, :, :-1]
@@ -186,7 +229,8 @@ def getActualCalories(image, calories):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 200, .1)
     flags = cv2.KMEANS_RANDOM_CENTERS
 
-    _, labels, palette = cv2.kmeans(pixels, n_colors, None, criteria, 10, flags)
+    _, labels, palette = cv2.kmeans(
+        pixels, n_colors, None, criteria, 10, flags)
     _, counts = np.unique(labels, return_counts=True)
     dominant = palette[np.argmax(counts)]
 
