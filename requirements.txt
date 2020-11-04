@@ -1,7 +1,9 @@
 Flask
 Flask-Cors
+tensorflow-gpu
 tensorflow
 numpy
 opencv-python
 matplotlib
 scikit-image
+keras
