@@ -48,10 +48,10 @@ train = ImageDataGenerator(rescale=1/255)
 validation = ImageDataGenerator(rescale=1/255)
 
 train_dataset = train.flow_from_directory(
-    "training", target_size=(500, 500), batch_size=100, class_mode='binary')
+    "training", target_size=(500, 500), batch_size=32, class_mode='sparse')
 validation_dataset = validation.flow_from_directory(
-    "validation", target_size=(500, 500), batch_size=10, class_mode="binary")
-# print(validation_dataset.class_indices)
+    "validation", target_size=(500, 500), batch_size=32, class_mode="sparse")
+print("[MODEL] Indexes: ", validation_dataset.class_indices)
 
 
 def create_model_from_zero(steps, epochs):
@@ -61,15 +61,20 @@ def create_model_from_zero(steps, epochs):
             tf.keras.layers.Conv2D(
                 16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(16, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                16, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                32, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                64, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
             tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(1, activation='sigmoid')
+            tf.keras.layers.Dense(
+                128, activation='relu'),
+            tf.keras.layers.Dense(
+                1, activation='sigmoid')
         ]
     )
 
@@ -77,7 +82,7 @@ def create_model_from_zero(steps, epochs):
         MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
     print("\t- Started Compile Phase")
-    model.compile(loss='binary_crossentropy',
+    model.compile(loss='sparse',
                   optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
     print("\t- Finished Compile Phase")
     print("\t- Started Fit Phase")
@@ -106,15 +111,20 @@ def create_model_from_checkpoint():
             tf.keras.layers.Conv2D(
                 16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(16, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                16, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                32, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.Conv2D(
+                64, (3, 3), activation='relu'),
             tf.keras.layers.MaxPool2D(2, 2),
             tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(128, activation='relu'),
-            tf.keras.layers.Dense(1, activation='sigmoid')
+            tf.keras.layers.Dense(
+                128, activation='relu'),
+            tf.keras.layers.Dense(
+                1, activation='sigmoid')
         ]
     )
 
