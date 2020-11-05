@@ -44,18 +44,18 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 res = {}
 cal = 0
 
-train = ImageDataGenerator(rescale=1/255)
-validation = ImageDataGenerator(rescale=1/255)
+train = ImageDataGenerator(rescale=1./255)
+validation = ImageDataGenerator(rescale=1./255)
 
 train_dataset = train.flow_from_directory(
     "training", target_size=(500, 500), batch_size=32, class_mode='sparse')
 validation_dataset = validation.flow_from_directory(
     "validation", target_size=(500, 500), batch_size=32, class_mode="sparse")
-print("[MODEL] Indexes: ", validation_dataset.class_indices)
+print("\n\n\t[MODEL] Indexes: ", validation_dataset.class_indices, "\n")
 
 
 def create_model_from_zero(steps, epochs):
-    print("[MODEL] Create Model from Zero -> Start")
+    print("\n\n\t[MODEL] Create Model from Zero -> Start\n")
     model = tf.keras.models.Sequential(
         [
             tf.keras.layers.Conv2D(
@@ -81,29 +81,31 @@ def create_model_from_zero(steps, epochs):
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
-    print("\t- Started Compile Phase")
-    model.compile(loss='sparse',
+    print("\n\n\t\t- Started Compile Phase\n")
+    model.compile(loss='mean_squared_error',
                   optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
-    print("\t- Finished Compile Phase")
-    print("\t- Started Fit Phase")
+    print("\n\n\t\t- Finished Compile Phase\n")
+    print("\n\n\t\t- Started Fit Phase\n")
+    # model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
+    #           validation_data=train_dataset, callbacks=[cp_callback])
     model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
               validation_data=train_dataset, callbacks=[cp_callback])
-    print("\t- Finished Fit Phase")
-    print("\t- Started Model Save Phase")
+    print("\n\n\t\t- Finished Fit Phase\n")
+    print("\n\n\t\t- Started Model Save Phase\n")
     model.save(MODEL_SAVEFILE_NAME)
-    print("\t- Finished Model Save Phase")
-    print("[MODEL] Create Model from Zero -> End")
+    print("\n\n\t\t- Finished Model Save Phase\n")
+    print("\n\n\t[MODEL] Create Model from Zero -> End\n")
     img = image.load_img('test.jpg', target_size=(500, 500))
     X = image.img_to_array(img)
     X = np.expand_dims(X, axis=0)
     images = np.vstack([X])
     loss, acc = model.evaluate(images)
-    print("[MODEL] accuracy: {:5.2f}%".format(100*acc))
+    print("\n\n\t[MODEL] accuracy: {:5.2f}%".format(100*acc), "\n")
 
     return model
 
 
-def create_model_from_checkpoint():
+def create_model_from_checkpoint(steps, epochs):
     latest = tf.train.latest_checkpoint(MODEL_CHECKPOINT_DIR)
 
     model = tf.keras.models.Sequential(
@@ -127,27 +129,41 @@ def create_model_from_checkpoint():
                 1, activation='sigmoid')
         ]
     )
-
     model.load_weights(latest)
-    return model
 
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+        MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
-def create_model_from_save():
-    print("[MODEL] Create Model from Save -> Start")
-    model = keras.models.load_model(MODEL_SAVEFILE_NAME)
-    print("[MODEL] Create Model from Save -> End")
+    model.compile(loss='mean_squared_error',
+                  optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
+    model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
+              validation_data=train_dataset, callbacks=[cp_callback])
+
     img = image.load_img('test.jpg', target_size=(500, 500))
     X = image.img_to_array(img)
     X = np.expand_dims(X, axis=0)
     images = np.vstack([X])
     loss, acc = model.evaluate(images)
-    print("[MODEL] accuracy: {:5.2f}%".format(100*acc))
+    print("\n\n\t[MODEL] accuracy: {:5.2f}%".format(100*acc), "\n")
+    return model
+
+
+def create_model_from_save():
+    print("\n\n\t[MODEL] Create Model from Save -> Start\n")
+    model = keras.models.load_model(MODEL_SAVEFILE_NAME)
+    print("\n\n\t[MODEL] Create Model from Save -> End\n")
+    img = image.load_img('test.jpg', target_size=(500, 500))
+    X = image.img_to_array(img)
+    X = np.expand_dims(X, axis=0)
+    images = np.vstack([X])
+    loss, acc = model.evaluate(images)
+    print("\n\n\t[MODEL] accuracy: {:5.2f}%".format(100*acc), "\n")
 
     return model
 
 
-model = create_model_from_zero(10, 30)
-#model = create_model_from_checkpoint()
+model = create_model_from_zero(50, 10)
+# model = create_model_from_checkpoint(50, 10)
 # model = create_model_from_save()
 print("[SUCCESS] MODEL IS READY")
 

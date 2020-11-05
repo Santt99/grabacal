@@ -135,3 +135,4 @@ dmypy.json
 checkpoints/
 res.json
 *.h5
+!test.jpg
