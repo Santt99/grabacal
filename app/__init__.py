@@ -49,34 +49,51 @@ validation = ImageDataGenerator(rescale=1./255)
 
 train_dataset = train.flow_from_directory(
     "training", target_size=(500, 500), batch_size=32, class_mode='sparse')
-validation_dataset = validation.flow_from_directory(
-    "validation", target_size=(500, 500), batch_size=32, class_mode="sparse")
-print("\n\n\t[MODEL] Indexes: ", validation_dataset.class_indices, "\n")
+print("\n\n\t[MODEL] Train Indexes: ", train_dataset.class_indices, "\n")
 
 
 def create_model_from_zero(steps, epochs):
     print("\n\n\t[MODEL] Create Model from Zero -> Start\n")
-    model = tf.keras.models.Sequential(
+    # model = tf.keras.models.Sequential(
+    #     [
+    #         tf.keras.layers.Conv2D(
+    #             16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
+    #         tf.keras.layers.MaxPool2D(2, 2),
+    #         tf.keras.layers.Conv2D(
+    #             32, (3, 3), activation='relu'),
+    #         tf.keras.layers.MaxPool2D(2, 2),
+    #         tf.keras.layers.Conv2D(
+    #             64, (3, 3), activation='relu'),
+    #         tf.keras.layers.MaxPool2D(2, 2),
+    #         tf.keras.layers.Flatten(),
+    #         tf.keras.layers.Dense(
+    #             500, activation='relu'),
+    #     ]
+    # )
+    data_augmentation = keras.Sequential(
         [
-            tf.keras.layers.Conv2D(
-                16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(
-                16, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(
-                32, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Conv2D(
-                64, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(
-                128, activation='relu'),
-            tf.keras.layers.Dense(
-                1, activation='sigmoid')
+            tf.keras.layers.experimental.preprocessing.RandomFlip("horizontal",
+                                                                  input_shape=(500,
+                                                                               500,
+                                                                               3)),
+            tf.keras.layers.experimental.preprocessing.RandomRotation(0.1),
+            tf.keras.layers.experimental.preprocessing.RandomZoom(0.1),
         ]
     )
+    model = tf.keras.models.Sequential([
+        data_augmentation,
+        tf.keras.layers.experimental.preprocessing.Rescaling(1./255),
+        tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Conv2D(32, 3, padding='same', activation='relu'),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu'),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(5)
+    ])
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
@@ -88,8 +105,31 @@ def create_model_from_zero(steps, epochs):
     print("\n\n\t\t- Started Fit Phase\n")
     # model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
     #           validation_data=train_dataset, callbacks=[cp_callback])
-    model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
-              validation_data=train_dataset, callbacks=[cp_callback])
+    fitness = model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
+                        validation_data=train_dataset, callbacks=[cp_callback])
+
+    acc = fitness.history['accuracy']
+    val_acc = fitness.history['val_accuracy']
+
+    loss = fitness.history['loss']
+    val_loss = fitness.history['val_loss']
+
+    epochs_range = range(epochs)
+
+    plt.figure(figsize=(8, 8))
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, acc, label='Training Accuracy')
+    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    plt.legend(loc='lower right')
+    plt.title('Training and Validation Accuracy')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, loss, label='Training Loss')
+    plt.plot(epochs_range, val_loss, label='Validation Loss')
+    plt.legend(loc='upper right')
+    plt.title('Training and Validation Loss')
+    plt.show()
+
     print("\n\n\t\t- Finished Fit Phase\n")
     print("\n\n\t\t- Started Model Save Phase\n")
     model.save(MODEL_SAVEFILE_NAME)
@@ -139,6 +179,10 @@ def create_model_from_checkpoint(steps, epochs):
     model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
               validation_data=train_dataset, callbacks=[cp_callback])
 
+    print("\n\n\t\t- Started Model Save Phase\n")
+    model.save(MODEL_SAVEFILE_NAME)
+    print("\n\n\t\t- Finished Model Save Phase\n")
+
     img = image.load_img('test.jpg', target_size=(500, 500))
     X = image.img_to_array(img)
     X = np.expand_dims(X, axis=0)
@@ -162,9 +206,9 @@ def create_model_from_save():
     return model
 
 
-model = create_model_from_zero(50, 10)
-# model = create_model_from_checkpoint(50, 10)
-# model = create_model_from_save()
+# model = create_model_from_zero(10, 5)
+# model = create_model_from_checkpoint(20, 10)
+model = create_model_from_save()
 print("[SUCCESS] MODEL IS READY")
 
 
@@ -200,14 +244,26 @@ def upload_file():
 
 
 def start_processing():
+
     for i in os.listdir('test'):
+        # img = keras.preprocessing.image.load_img(
+        #     'test/'+i, target_size=(500, 500)
+        # )
+        # img_array = keras.preprocessing.image.img_to_array(img)
+        # img_array = tf.expand_dims(img_array, 0)  # Create a batch
+
+        # predictions = model.predict(img_array)
+        # score = tf.nn.softmax(predictions[0])
+        # loss, acc = model.evaluate(img_array)
+
         img = image.load_img('test/'+i, target_size=(500, 500))
 
         X = image.img_to_array(img)
         X = np.expand_dims(X, axis=0)
         images = np.vstack([X])
-        val = model.predict(images)
+        predictions = model.predict(images)
         loss, acc = model.evaluate(images)
+        score = tf.nn.softmax(predictions[0])
 
         APPLE_PIE = 0
         FILET_MIGNON = 1
@@ -218,19 +274,23 @@ def start_processing():
         foodType = ''
         foodCalories = 0
 
-        if(val == APPLE_PIE):
+        print("[Score]: ", np.argmax(score))
+        print("[Loss]: ", loss)
+        print("[Accuracy]: ", acc)
+
+        if(np.argmax(score) == APPLE_PIE):
             foodType = 'APPLE_PIE'
             foodCalories = 437
-        elif(val == FILET_MIGNON):
+        elif(np.argmax(score) == FILET_MIGNON):
             foodType = 'FILET_MIGNON'
             foodCalories = 467
-        elif(val == FRENCH_FRIES):
+        elif(np.argmax(score) == FRENCH_FRIES):
             foodType = 'FRENCH_FRIES'
             foodCalories = 660
-        elif(val == HAMBURGER):
+        elif(np.argmax(score) == HAMBURGER):
             foodType = 'HAMBURGER'
             foodCalories = 505
-        elif(val == HOT_DOG):
+        elif(np.argmax(score) == HOT_DOG):
             foodType = 'HOT_DOG'
             foodCalories = 564
 
