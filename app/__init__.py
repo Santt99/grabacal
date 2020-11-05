@@ -6,6 +6,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.optimizers import RMSprop
 from keras.preprocessing import image
+import keras
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -112,14 +113,17 @@ def create_model_from_checkpoint():
 
 
 def create_model_from_save():
+    print("[MODEL] Create Model from Save -> Start")
     model = keras.models.load_model(MODEL_SAVEFILE_NAME)
+    print("[MODEL] Create Model from Save -> End")
+
     return model
 
 
-model = create_model_from_zero()
-print("[SUCCESS] MODEL IS READY")
+# model = create_model_from_zero()
 #model = create_model_from_checkpoint()
-#model = create_model_from_save()
+model = create_model_from_save()
+print("[SUCCESS] MODEL IS READY")
 
 
 def allowed_file(filename):
@@ -192,7 +196,7 @@ def start_processing():
 
         res[i] = {
             "food_type": foodType,
-            "model_accuracy": 100*acc,
+            "model_accuracy": acc,
             "food_calories_aprox": foodCalories
         }
 
