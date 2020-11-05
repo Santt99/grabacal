@@ -47,8 +47,11 @@ cal = 0
 train = ImageDataGenerator(rescale=1./255)
 validation = ImageDataGenerator(rescale=1./255)
 
-train_dataset = train.flow_from_directory(
-    "training", target_size=(500, 500), batch_size=32, class_mode='sparse')
+
+train_dataset=train.flow_from_directory("images", target_size = (300,300),batch_size = 1000)  
+validation_dataset=validation.flow_from_directory("images", target_size = (300,300),batch_size = 1000)  
+#train_dataset = train.flow_from_directory(
+#    "training", target_size=(500, 500), batch_size=32, class_mode='sparse')
 print("\n\n\t[MODEL] Train Indexes: ", train_dataset.class_indices, "\n")
 
 
@@ -80,27 +83,42 @@ def create_model_from_zero(steps, epochs):
             tf.keras.layers.experimental.preprocessing.RandomZoom(0.1),
         ]
     )
-    model = tf.keras.models.Sequential([
-        data_augmentation,
-        tf.keras.layers.experimental.preprocessing.Rescaling(1./255),
-        tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(32, 3, padding='same', activation='relu'),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu'),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(5)
+    #model = tf.keras.models.Sequential([
+    #    data_augmentation,
+    #    tf.keras.layers.experimental.preprocessing.Rescaling(1./255),
+    #    tf.keras.layers.Conv2D(16, 3, padding='same', activation='relu'),
+    #    tf.keras.layers.MaxPooling2D(),
+    #    tf.keras.layers.Conv2D(32, 3, padding='same', activation='relu'),
+    #    tf.keras.layers.MaxPooling2D(),
+    #    tf.keras.layers.Conv2D(64, 3, padding='same', activation='relu'),
+    #    tf.keras.layers.MaxPooling2D(),
+    #    tf.keras.layers.Dropout(0.2),
+    #    tf.keras.layers.Flatten(),
+    #    tf.keras.layers.Dense(128, activation='relu'),
+    #    tf.keras.layers.Dense(5)
+    #])
+    train_dataset=train.flow_from_directory("images", target_size = (300,300),batch_size = 1000)  
+    validation_dataset=validation.flow_from_directory("images", target_size = (300,300),batch_size = 1000)  
+    print(validation_dataset.class_indices)
+    model= tf.keras.models.Sequential([tf.keras.layers.Conv2D(16,(3,3),activation = 'relu',input_shape = (300,300,3)), 
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(32,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Conv2D(64,(3,3),activation = 'relu'),
+    tf.keras.layers.MaxPool2D(2,2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(500,activation='relu'),
+    tf.keras.layers.Dense(6,activation='sigmoid')
     ])
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
 
     print("\n\n\t\t- Started Compile Phase\n")
-    model.compile(loss='mean_squared_error',
-                  optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
+    #model.compile(loss='mean_squared_error',
+    #              optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
+    model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+
     print("\n\n\t\t- Finished Compile Phase\n")
     print("\n\n\t\t- Started Fit Phase\n")
     # model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
