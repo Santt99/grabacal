@@ -50,26 +50,28 @@ validation = ImageDataGenerator(rescale=1/255)
 train_dataset = train.flow_from_directory(
     "training", target_size=(500, 500), batch_size=1000, class_mode='binary')
 validation_dataset = validation.flow_from_directory(
-    "validation", target_size=(500, 500), batch_size=10, class_mode="binary")
+    "validation", target_size=(500, 500), batch_size=100, class_mode="binary")
 # print(validation_dataset.class_indices)
 
 
 def create_model_from_zero(steps, epochs):
     print("[MODEL] Create Model from Zero -> Start")
-    model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Conv2D(
-                                            32, (3, 3), activation='relu'),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Conv2D(
-                                            64, (3, 3), activation='relu'),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Flatten(),
-                                        tf.keras.layers.Dense(
-                                            512, activation='relu'),
-                                        tf.keras.layers.Dense(
-                                            1, activation='sigmoid')
-                                        ])
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Conv2D(
+                16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(16, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(128, activation='relu'),
+            tf.keras.layers.Dense(1, activation='sigmoid')
+        ]
+    )
 
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
         MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
@@ -99,20 +101,22 @@ def create_model_from_zero(steps, epochs):
 def create_model_from_checkpoint():
     latest = tf.train.latest_checkpoint(MODEL_CHECKPOINT_DIR)
 
-    model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Conv2D(
-                                            32, (3, 3), activation='relu'),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Conv2D(
-                                            64, (3, 3), activation='relu'),
-                                        tf.keras.layers.MaxPool2D(2, 2),
-                                        tf.keras.layers.Flatten(),
-                                        tf.keras.layers.Dense(
-                                            512, activation='relu'),
-                                        tf.keras.layers.Dense(
-                                            1, activation='sigmoid')
-                                        ])
+    model = tf.keras.models.Sequential(
+        [
+            tf.keras.layers.Conv2D(
+                16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(16, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+            tf.keras.layers.MaxPool2D(2, 2),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(128, activation='relu'),
+            tf.keras.layers.Dense(1, activation='sigmoid')
+        ]
+    )
 
     model.load_weights(latest)
     return model
@@ -132,7 +136,7 @@ def create_model_from_save():
     return model
 
 
-model = create_model_from_zero(3, 5)
+model = create_model_from_zero(10, 30)
 #model = create_model_from_checkpoint()
 # model = create_model_from_save()
 print("[SUCCESS] MODEL IS READY")
