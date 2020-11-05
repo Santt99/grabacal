@@ -105,7 +105,7 @@ def create_model_from_zero(steps, epochs):
     print("\n\n\t\t- Started Fit Phase\n")
     # model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
     #           validation_data=train_dataset, callbacks=[cp_callback])
-    fitness = model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
+    fitness = model.fit(train_dataset, epochs=epochs,
                         validation_data=train_dataset, callbacks=[cp_callback])
 
     acc = fitness.history['accuracy']
@@ -206,7 +206,7 @@ def create_model_from_save():
     return model
 
 
-# model = create_model_from_zero(10, 5)
+# model = create_model_from_zero(150, 500)
 # model = create_model_from_checkpoint(20, 10)
 model = create_model_from_save()
 print("[SUCCESS] MODEL IS READY")
