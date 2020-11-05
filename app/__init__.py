@@ -48,13 +48,13 @@ train = ImageDataGenerator(rescale=1/255)
 validation = ImageDataGenerator(rescale=1/255)
 
 train_dataset = train.flow_from_directory(
-    "training", target_size=(500, 500), batch_size=10, class_mode='binary')
+    "training", target_size=(500, 500), batch_size=1000, class_mode='binary')
 validation_dataset = validation.flow_from_directory(
     "validation", target_size=(500, 500), batch_size=10, class_mode="binary")
 # print(validation_dataset.class_indices)
 
 
-def create_model_from_zero():
+def create_model_from_zero(steps, epochs):
     print("[MODEL] Create Model from Zero -> Start")
     model = tf.keras.models.Sequential([tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(500, 500, 3)),
                                         tf.keras.layers.MaxPool2D(2, 2),
@@ -79,13 +79,19 @@ def create_model_from_zero():
                   optimizer=RMSprop(lr=0.001), metrics=['accuracy'])
     print("\t- Finished Compile Phase")
     print("\t- Started Fit Phase")
-    model.fit(train_dataset, steps_per_epoch=10, epochs=30,
+    model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
               validation_data=train_dataset, callbacks=[cp_callback])
     print("\t- Finished Fit Phase")
     print("\t- Started Model Save Phase")
     model.save(MODEL_SAVEFILE_NAME)
     print("\t- Finished Model Save Phase")
     print("[MODEL] Create Model from Zero -> End")
+    img = image.load_img('test.jpg', target_size=(500, 500))
+    X = image.img_to_array(img)
+    X = np.expand_dims(X, axis=0)
+    images = np.vstack([X])
+    loss, acc = model.evaluate(images)
+    print("[MODEL] accuracy: {:5.2f}%".format(100*acc))
 
     return model
 
@@ -116,13 +122,19 @@ def create_model_from_save():
     print("[MODEL] Create Model from Save -> Start")
     model = keras.models.load_model(MODEL_SAVEFILE_NAME)
     print("[MODEL] Create Model from Save -> End")
+    img = image.load_img('test.jpg', target_size=(500, 500))
+    X = image.img_to_array(img)
+    X = np.expand_dims(X, axis=0)
+    images = np.vstack([X])
+    loss, acc = model.evaluate(images)
+    print("[MODEL] accuracy: {:5.2f}%".format(100*acc))
 
     return model
 
 
-# model = create_model_from_zero()
+model = create_model_from_zero(3, 5)
 #model = create_model_from_checkpoint()
-model = create_model_from_save()
+# model = create_model_from_save()
 print("[SUCCESS] MODEL IS READY")
 
 
