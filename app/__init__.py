@@ -48,9 +48,9 @@ train = ImageDataGenerator(rescale=1/255)
 validation = ImageDataGenerator(rescale=1/255)
 
 train_dataset = train.flow_from_directory(
-    "training", target_size=(500, 500), batch_size=1000, class_mode='binary')
+    "training", target_size=(500, 500), batch_size=100, class_mode='binary')
 validation_dataset = validation.flow_from_directory(
-    "validation", target_size=(500, 500), batch_size=100, class_mode="binary")
+    "validation", target_size=(500, 500), batch_size=10, class_mode="binary")
 # print(validation_dataset.class_indices)
 
 
