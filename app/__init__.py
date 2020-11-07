@@ -19,7 +19,7 @@ app = Flask(__name__)
 CORS(app)
 
 UPLOAD_FOLDER = './test'
-MODEL_SAVEFILE_NAME = "trained_model_94_96.h5"
+MODEL_SAVEFILE_NAME = "trained_model.h5"
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
@@ -48,13 +48,14 @@ def create_model_from_save():
     print("\n\n\t[MODEL] Create Model from Save -> Start\n")
     model = keras.models.load_model(MODEL_SAVEFILE_NAME)
     print("\n\n\t[MODEL] Create Model from Save -> End\n")
-    img = image.load_img('test.jpg', target_size=(300, 300))
-    X = image.img_to_array(img)
-    X = np.expand_dims(X, axis=0)
-    images = np.vstack([X])
-    loss, acc = model.evaluate(images)
-    print("\n\n\t[MODEL] accuracy: {:5.2f}%".format(100*acc), "\n")
 
+    model.summary()
+
+    # Re-evaluate the mol
+    print("\n\n\t[MODEL] Reevaluate -> Start\n")
+    # loss, acc = model.evaluate(train_dataset, verbose=2)
+    # print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+    print("\n\n\t[MODEL] End -> Start\n")
     return model
 
 
@@ -94,19 +95,8 @@ def upload_file():
 
 
 def start_processing():
-
     print("\n\t[MODEL] Train Indexes: ", train_dataset.class_indices, "\n")
     for i in os.listdir('test'):
-        # img = keras.preprocessing.image.load_img(
-        #     'test/'+i, target_size=(500, 500)
-        # )
-        # img_array = keras.preprocessing.image.img_to_array(img)
-        # img_array = tf.expand_dims(img_array, 0)  # Create a batch
-
-        # predictions = model.predict(img_array)
-        # score = tf.nn.softmax(predictions[0])
-        # loss, acc = model.evaluate(img_array)
-
         img = image.load_img('test/'+i, target_size=(300, 300))
 
         X = image.img_to_array(img)
@@ -116,7 +106,10 @@ def start_processing():
         loss, acc = model.evaluate(images)
         score = tf.nn.softmax(predictions[0])
 
-        print("PREDICTIONS (", i, "): ", np.argmax(predictions, axis=1))
+        print("\n:: ================ STARTED PREDICTION =================== ::")
+        print("\t- File: ", i)
+        print("\t- Predictions: ", score)
+
         APPLE_PIE = 0
         FILET_MIGNON = 1
         FRENCH_FRIES = 2
@@ -126,13 +119,18 @@ def start_processing():
         foodType = ''
         foodCalories = 0
 
-        # print("[Score]: ", np.argmax(score))
-        # print("[Loss]: ", loss)
-        # print("[Accuracy]: ", acc)
-
         if(np.argmax(score) == APPLE_PIE):
             foodType = 'APPLE_PIE'
             foodCalories = 437
+
+            valid = False
+            for each in score.numpy():
+                if each != np.float32(0.2):
+                    valid = True
+
+            if not valid:
+                foodType = 'NO MATCH'
+                foodCalories = 0
         elif(np.argmax(score) == FILET_MIGNON):
             foodType = 'FILET_MIGNON'
             foodCalories = 467
@@ -146,7 +144,8 @@ def start_processing():
             foodType = 'HOT_DOG'
             foodCalories = 564
 
-        # foodCalories = getActualCalories('test/'+i, foodCalories)
+        print("\t- Class Predicted: ", foodType)
+        print("")
 
         res[i] = {
             "food_type": foodType,
@@ -174,7 +173,9 @@ def get_results():
 @app.route('/process', methods=['GET'])
 def process():
     if request.method == 'GET':
+        print("\n[MODEL] Starting to process")
         start_processing()
+        print("[MODEL] Finished processing...\n")
         response = jsonify({"message": "Started processing images!"})
         return response, 200
 
