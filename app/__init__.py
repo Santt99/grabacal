@@ -18,7 +18,7 @@ from skimage import io
 app = Flask(__name__)
 CORS(app)
 
-UPLOAD_FOLDER = './test'
+UPLOAD_FOLDER = './app/static/'
 MODEL_SAVEFILE_NAME = "trained_model.h5"
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -36,7 +36,7 @@ if gpus:
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'JPG', 'PNG'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-res = {}
+res = []
 cal = 0
 
 train = ImageDataGenerator(rescale=1./255)
@@ -96,8 +96,14 @@ def upload_file():
 
 def start_processing():
     print("\n\t[MODEL] Train Indexes: ", train_dataset.class_indices, "\n")
-    for i in os.listdir('test'):
-        img = image.load_img('test/'+i, target_size=(300, 300))
+    try:
+        os.remove("res.json")
+        os.remove("../res.json")
+        print(0)
+    except Exception:
+        pass
+    for i in os.listdir(UPLOAD_FOLDER):
+        img = image.load_img(UPLOAD_FOLDER+i, target_size=(300, 300))
 
         X = image.img_to_array(img)
         X = np.expand_dims(X, axis=0)
@@ -110,17 +116,17 @@ def start_processing():
         print("\t- File: ", i)
         print("\t- Predictions: ", score)
 
-        APPLE_PIE = 0
-        FILET_MIGNON = 1
-        FRENCH_FRIES = 2
+        CLAM_CHOWDER = 0
+        DEVILED_EGGS = 1
+        DUMPLINGS = 2
         HAMBURGER = 3
         HOT_DOG = 4
 
         foodType = ''
         foodCalories = 0
 
-        if(np.argmax(score) == APPLE_PIE):
-            foodType = 'APPLE_PIE'
+        if(np.argmax(score) == CLAM_CHOWDER):
+            foodType = 'CLAM_CHOWDER'
             foodCalories = 437
 
             valid = False
@@ -131,11 +137,11 @@ def start_processing():
             if not valid:
                 foodType = 'NO MATCH'
                 foodCalories = 0
-        elif(np.argmax(score) == FILET_MIGNON):
-            foodType = 'FILET_MIGNON'
+        elif(np.argmax(score) == DEVILED_EGGS):
+            foodType = 'DEVILED_EGGS'
             foodCalories = 467
-        elif(np.argmax(score) == FRENCH_FRIES):
-            foodType = 'FRENCH_FRIES'
+        elif(np.argmax(score) == DUMPLINGS):
+            foodType = 'DUMPLINGS'
             foodCalories = 660
         elif(np.argmax(score) == HAMBURGER):
             foodType = 'HAMBURGER'
@@ -147,14 +153,28 @@ def start_processing():
         print("\t- Class Predicted: ", foodType)
         print("")
 
-        res[i] = {
+        res.append({
+            "file": i,
             "food_type": foodType,
             "model_accuracy": acc,
             "food_calories_aprox": foodCalories
-        }
+        })
 
     with open('res.json', 'w') as json_file:
         json.dump(res, json_file)
+
+
+@app.route('/clean', methods=['GET'])
+def clean():
+    if request.method == 'GET':
+        for i in os.listdir(UPLOAD_FOLDER):
+            os.remove(UPLOAD_FOLDER+i)
+
+        response = jsonify({"message": "Cleaned!"})
+        return response, 200
+    else:
+        response = jsonify({"message": "Invalid"})
+        return response, 409
 
 
 @app.route('/results', methods=['GET'])

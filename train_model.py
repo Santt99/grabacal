@@ -42,10 +42,10 @@ def create_model_from_zero(steps, epochs):
     print("\n\t[MODEL] Create Model from Zero -> Start\n")
 
     train_dataset = train.flow_from_directory(
-        "images", target_size=(300, 300), batch_size=5)
+        "images", target_size=(300, 300), batch_size=3)
 
     validation_dataset = validation.flow_from_directory(
-        "validation", target_size=(300, 300), batch_size=5)
+        "validation", target_size=(300, 300), batch_size=3)
 
     model = tf.keras.models.Sequential(
         [
@@ -62,15 +62,12 @@ def create_model_from_zero(steps, epochs):
         ]
     )
 
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(
-        MODEL_CHECKPOIN_PATH, save_weights_only=True, verbose=1, period=5)
-
     model.compile(optimizer='rmsprop',
                   loss='categorical_crossentropy', metrics=['accuracy'])
 
     print("\n\t\t- Started Fit Phase\n")
     model.fit(train_dataset, steps_per_epoch=steps, epochs=epochs,
-              validation_data=validation_dataset, callbacks=[cp_callback])
+              validation_data=validation_dataset)
 
     print("\n\t\t- Finished Fit Phase\n")
     model.save(MODEL_SAVEFILE_NAME)
@@ -80,5 +77,5 @@ def create_model_from_zero(steps, epochs):
     return model
 
 
-model = create_model_from_zero(30, 30)
+model = create_model_from_zero(10, 30)
 print("[SUCCESS] MODEL IS READY")
