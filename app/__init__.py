@@ -156,7 +156,7 @@ def start_processing():
         res.append({
             "file": i,
             "food_type": foodType,
-            "model_accuracy": acc,
+            "model_accuracy": "{:5.2f}%".format(100*acc),
             "food_calories_aprox": foodCalories
         })
 
